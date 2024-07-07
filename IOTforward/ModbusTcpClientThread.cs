@@ -4,6 +4,7 @@ using IoTClient.Models;
 using IOTforward.model;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -62,7 +63,24 @@ namespace IOTforward
                                 else if (modbusTransferAddress.DataType == 5) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToDouble(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
                                 else if (modbusTransferAddress.DataType == 6) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
                                 else if (modbusTransferAddress.DataType == 7) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
-                                else { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
+                                else {
+
+                                    //localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
+
+
+                                    //高效能版
+                                    static void SwapBytes(byte[] array, int index1, int index2)
+                                    {
+                                        byte temp = array[index1];
+                                        array[index1] = array[index2];
+                                        array[index2] = temp;
+                                    }                                   
+
+                                    var writeValue = BitConverter.GetBytes(ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
+                                    SwapBytes(writeValue, 0, 1);
+                                    Program.modbusTcpServer.FunctionCode16(writeValue,"1", Int32.Parse(modbusTransferAddress.serveraddress));
+                                    
+                                }
                             }
 
                         }

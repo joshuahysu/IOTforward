@@ -16,6 +16,7 @@ using System.Linq;
 
 using System.Threading.Tasks;
 using System.Net.WebSockets;
+using Microsoft.Azure.IIoT.Crypto.Models;
 namespace IOTforward
 {
     public class ModbusTcpServerJoshua : ServerSocketBase
@@ -197,10 +198,8 @@ namespace IOTforward
                                 var value = new byte[requetData[12]];
                                 Buffer.BlockCopy(requetData, 13, value, 0, value.Length);
                                 byte[] byteArray;
-                                if (stationDic.TryGetValue(stationNumberKey, out byte[] modbus4)) {
-                                    byteArray = modbus4;
-                                    value.CopyTo(byteArray, address * 2);
-                                    stationDic[stationNumberKey]=byteArray;
+                                if (stationDic.TryGetValue(stationNumberKey, out byte[] modbus4)) {    
+                                    value.CopyTo(modbus4, address * 2);                     
                                 }
                                 else {
                                     byteArray= new byte[65536];
@@ -235,6 +234,34 @@ namespace IOTforward
                     //throw ex;
                 }
             }
+        }
+
+        /// <summary>
+        /// 未完成
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="requetData"></param>
+        /// <param name="stationNumberKey"></param>
+        /// <param name="address"></param>
+        public void FunctionCode16(byte[] value, string stationNumberKey,int address) {
+
+            //var value = new byte[requetData[12]];
+            //Buffer.BlockCopy(requetData, 13, value, 0, value.Length);
+            //byte[] byteArray = BitConverter.GetBytes("1");
+
+            stationNumberKey = stationNumberKey + "-key";
+            byte[] byteArray;
+            if (stationDic.TryGetValue(stationNumberKey, out byte[] modbus4))
+            {
+                value.CopyTo(modbus4, address * 2);
+            }
+            else
+            {
+                byteArray = new byte[65536];
+                value.CopyTo(byteArray, address * 2);
+                stationDic.Add(stationNumberKey, byteArray);
+            }
+
         }
     }
 }

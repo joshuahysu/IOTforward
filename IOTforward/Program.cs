@@ -16,8 +16,8 @@ using System.Collections;
 namespace IOTforward
 {
     internal class Program
-    {        
-
+    {
+        public static ModbusTcpServerJoshua modbusTcpServer;
         private static void Main(string[] args)
         {
             //addLogService();
@@ -30,8 +30,8 @@ namespace IOTforward
             var modbusTransferList = new List<ModbusTransfer>();
         
 
-            //var modbusTcpServer = new ModbusTcpServerJoshua(503, "0.0.0.0");
-            var modbusTcpServer = new ModbusTcpServer(503, "0.0.0.0");
+            modbusTcpServer = new ModbusTcpServerJoshua(503, "0.0.0.0");
+            //var modbusTcpServer = new ModbusTcpServer(503, "0.0.0.0");
 
             modbusTcpServer.Start();
 
@@ -149,6 +149,10 @@ namespace IOTforward
                     finsClientThreadDic.Add(item.deviceip+"."+ item.finsdestination, omronFinsThread);
                 }
                 else if (item.connectiontype == "COM")
+                {
+
+                }
+                else if (item.connectiontype == "OPCUA")
                 {
 
                 }
