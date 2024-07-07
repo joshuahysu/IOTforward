@@ -125,9 +125,8 @@ namespace IOTforward
                     {
                         //读取线圈
                         case 1:
-                            {
-                                var value = dataPersist.Read(stationNumberKey + "-Coil");// 数据存在 8、9                            
-                                var byteArray = JsonConvert.DeserializeObject<byte[]>(value) ?? new byte[65536];
+                            {  
+                                var byteArray = stationDic.TryGetValue(stationNumberKey + "-Coil", out byte[] modbus4) ? modbus4 : new byte[65536];
 
                                 var blenght = (byte)Math.Ceiling(registerLenght / 8f);
                                 //当前位置到最后的长度
@@ -149,18 +148,28 @@ namespace IOTforward
                         case 5:
                             {
                                 var value = new byte[2];
-                                Buffer.BlockCopy(requetData, 10, value, 0, value.Length);
-                                var byteArray = JsonConvert.DeserializeObject<byte[]>(dataPersist.Read(stationNumberKey + "-Coil")) ?? new byte[65536];
+                                Buffer.BlockCopy(requetData, 10, value, 0, value.Length);               
 
+                                byte[] byteArray;
+                                if (stationDic.TryGetValue(stationNumberKey + "-Coil", out byte[] modbus4))
+                                {
+                                    byteArray = modbus4;
+                                    if (value[0] == 0 && value[1] == 0)
+                                        byteArray[address] = 0;
+                                    else
+                                        byteArray[address] = 1;
 
-                                if (value[0] == 0 && value[1] == 0)
-                                    byteArray[address] = 0;
+                                    stationDic[stationNumberKey + "-Coil"] = byteArray;
+                                }
                                 else
-                                    byteArray[address] = 1;
-
-
-                                dataPersist.Write(stationNumberKey + "-Coil", JsonConvert.SerializeObject(byteArray));
-
+                                {
+                                    byteArray = new byte[65536];
+                                    if (value[0] == 0 && value[1] == 0)
+                                        byteArray[address] = 0;
+                                    else
+                                        byteArray[address] = 1;
+                                    stationDic.Add(stationNumberKey + "-Coil", byteArray);
+                                }
 
                                 var responseData = new byte[10];
                                 Buffer.BlockCopy(requetData, 0, responseData, 0, responseData.Length);
@@ -170,8 +179,7 @@ namespace IOTforward
                             break;
                         //读取
                         case 3:
-                            {
-                                var value = dataPersist.Read(stationNumberKey);// 数据存在 8、9
+                            {                           
                                 var byteArray = stationDic.TryGetValue(stationNumberKey, out byte[] modbus4) ? modbus4 : new byte[65536];
                                 //当前位置到最后的长度
                                 responseData1[4] = (byte)((3 + registerLenght * 2) / 256);
