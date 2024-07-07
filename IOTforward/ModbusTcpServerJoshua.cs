@@ -18,14 +18,16 @@ using System.Threading.Tasks;
 using System.Net.WebSockets;
 namespace IOTforward
 {
-    public class ModbusTcpServer : ServerSocketBase
+    public class ModbusTcpServerJoshua : ServerSocketBase
     {
         private Socket socketServer;
         private string ip;
         private int port;
         DataPersist dataPersist;
         List<Socket> sockets = new List<Socket>();
-        public ModbusTcpServer(int port, string ip = null)
+        Dictionary<string, byte[]> stationDic= new Dictionary<string, byte[]>();
+
+        public ModbusTcpServerJoshua(int port, string ip = null)
         {
             this.ip = ip;
             this.port = port;
@@ -149,11 +151,17 @@ namespace IOTforward
                                 var value = new byte[2];
                                 Buffer.BlockCopy(requetData, 10, value, 0, value.Length);
                                 var byteArray = JsonConvert.DeserializeObject<byte[]>(dataPersist.Read(stationNumberKey + "-Coil")) ?? new byte[65536];
+
+
                                 if (value[0] == 0 && value[1] == 0)
                                     byteArray[address] = 0;
                                 else
                                     byteArray[address] = 1;
+
+
                                 dataPersist.Write(stationNumberKey + "-Coil", JsonConvert.SerializeObject(byteArray));
+
+
                                 var responseData = new byte[10];
                                 Buffer.BlockCopy(requetData, 0, responseData, 0, responseData.Length);
                                 responseData[5] = 4;//后面的长度
@@ -163,8 +171,8 @@ namespace IOTforward
                         //读取
                         case 3:
                             {
-                                var value = dataPersist.Read(stationNumberKey);// 数据存在 8、9                            
-                                var byteArray = JsonConvert.DeserializeObject<byte[]>(value) ?? new byte[65536];
+                                var value = dataPersist.Read(stationNumberKey);// 数据存在 8、9
+                                var byteArray = stationDic.TryGetValue(stationNumberKey, out byte[] modbus4) ? modbus4 : new byte[65536];
                                 //当前位置到最后的长度
                                 responseData1[4] = (byte)((3 + registerLenght * 2) / 256);
                                 responseData1[5] = (byte)((3 + registerLenght * 2) % 256);
@@ -180,9 +188,18 @@ namespace IOTforward
                             {
                                 var value = new byte[requetData[12]];
                                 Buffer.BlockCopy(requetData, 13, value, 0, value.Length);
-                                var byteArray = JsonConvert.DeserializeObject<byte[]>(dataPersist.Read(stationNumberKey)) ?? new byte[65536];
-                                value.CopyTo(byteArray, address * 2);
-                                dataPersist.Write(stationNumberKey, JsonConvert.SerializeObject(byteArray));
+                                byte[] byteArray;
+                                if (stationDic.TryGetValue(stationNumberKey, out byte[] modbus4)) {
+                                    byteArray = modbus4;
+                                    value.CopyTo(byteArray, address * 2);
+                                    stationDic[stationNumberKey]=byteArray;
+                                }
+                                else {
+                                    byteArray= new byte[65536];
+                                    value.CopyTo(byteArray, address * 2);
+                                    stationDic.Add(stationNumberKey, byteArray);
+                                }
+
                                 var responseData = new byte[12];
                                 Buffer.BlockCopy(requetData, 0, responseData, 0, responseData.Length);
                                 responseData[5] = 6;//后面的长度

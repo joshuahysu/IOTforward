@@ -87,7 +87,7 @@ namespace IOTforward
                     }
 
                     var modbusThread = new ModbusTcpClientThread(item.deviceip, int.Parse(item.deviceport), modbusInputList);
-                    modbusThread.StartTransferThread(modbusTransferDic);
+                   // modbusThread.StartTransferThread(modbusTransferDic);
                     modbusTcpClientThreadDic.Add(item.deviceip, modbusThread);
                 }
                 else if (item.connectiontype == "FINS")

@@ -16,7 +16,7 @@ namespace IOTforward
     {
         List<ModbusInput> list = new List<ModbusInput>();
         ModbusTcpClient deviceClient;
-
+        public string DeviceIsConnectionAddress { get; set; }
         internal ModbusTcpClientThread(string ip, int port, List<ModbusInput> inputs)
         {
 
@@ -26,48 +26,53 @@ namespace IOTforward
 
         }
 
-        internal void StartTransferThread(Dictionary<string, ModbusTransfer> modbusTransferDic)
+        internal void StartTransferThread(Dictionary<string, ModbusTransfer> modbusTransferDic, string deviceIsConnectionAddress)
         {
             ModbusTcpClient localClient = new ModbusTcpClient("127.0.0.1", 503);
             localClient.Open();
 
-
+            DeviceIsConnectionAddress = deviceIsConnectionAddress;
 
             new Thread(() =>
             {
-
                 while (true)
                 {
-                    int strartAddress = 998;
-                    //第一次strartAddress執行會是0
-                    //是否有連線
-                    localClient.Write((strartAddress++).ToString(), Convert.ToUInt16(localClient.Connected));
-                    var result = deviceClient.BatchRead(list);
-
-                    foreach (var item in result.Value)
+                    try
                     {
+                        //第一次strartAddress執行會是0
+                        //是否有連線
+                        localClient.Write(DeviceIsConnectionAddress, Convert.ToUInt16(localClient.Connected));
+                        var result = deviceClient.BatchRead(list);
 
-                        modbusTransferDic.TryGetValue(item.FunctionCode.ToString() + $"{Convert.ToInt32(item.Address):D4}", out ModbusTransfer modbusTransferAddress);
-                        if (modbusTransferAddress != null)
+                        foreach (var item in result.Value)
                         {
-                            if (modbusTransferAddress.DataType == 1)
+                            modbusTransferDic.TryGetValue(item.FunctionCode.ToString() + $"{Convert.ToInt32(item.Address):D4}", out ModbusTransfer modbusTransferAddress);
+                            if (modbusTransferAddress != null)
                             {
-                                localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
+                                if (modbusTransferAddress.DataType == 1)
+                                {
+                                    localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
+                                }
+                                else if (modbusTransferAddress.DataType == 2)
+                                {
+                                    localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt32(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
+                                }
+                                else if (modbusTransferAddress.DataType == 3) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt32(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
+                                else if (modbusTransferAddress.DataType == 4) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToDouble(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
+                                else if (modbusTransferAddress.DataType == 5) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToDouble(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
+                                else if (modbusTransferAddress.DataType == 6) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
+                                else if (modbusTransferAddress.DataType == 7) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
+                                else { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
                             }
-                            else if (modbusTransferAddress.DataType == 2)
-                            {
-                                localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt32(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
-                            }
-                            else if (modbusTransferAddress.DataType == 3) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt32(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
-                            else if (modbusTransferAddress.DataType == 4) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToDouble(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
-                            else if (modbusTransferAddress.DataType == 5) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToDouble(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
-                            else if (modbusTransferAddress.DataType == 6) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
-                            else if (modbusTransferAddress.DataType == 7) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
-                            else { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
-                        } 
 
+                        }
                     }
-                    Thread.Sleep(5000);
+                    catch (Exception)
+                    {
+                        //throw;
+                        Thread.Sleep(5000);
+                    }
+                    Thread.Sleep(300);
                 }
             }).Start();
         }

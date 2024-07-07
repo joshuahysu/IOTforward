@@ -12,6 +12,7 @@ using System.IO.BACnet.Serialize;
 using Microsoft.Extensions.DependencyInjection;
 
 using Microsoft.Extensions.Logging;
+using System.Collections;
 namespace IOTforward
 {
     internal class Program
@@ -27,9 +28,10 @@ namespace IOTforward
             var deviceinfoTable = SQLiteDb.deviceinfoModel();
             var modbusInputList = new List<ModbusInput>();
             var modbusTransferList = new List<ModbusTransfer>();
-            var modbusTransferDic = new Dictionary<string, ModbusTransfer>();
+        
 
-            var modbusTcpServer = new ModbusTcpServer(503, "127.0.0.1");
+            //var modbusTcpServer = new ModbusTcpServerJoshua(503, "0.0.0.0");
+            var modbusTcpServer = new ModbusTcpServer(503, "0.0.0.0");
 
             modbusTcpServer.Start();
 
@@ -71,36 +73,55 @@ namespace IOTforward
                         return DataTypeEnum.UInt16; // 其他数据类型
                     }
                 }
-
+                string address_227 = "9999";
+                var modbusTransferDic = new Dictionary<string, ModbusTransfer>();
                 if (item.connectiontype == "Modbus TCP")
                 {
                     
                     var svidinfoTable = SQLiteDb.selectSvidinfoModbusN(item.modbusn, item.mapfile);
+                    
                     foreach (var sivdItem in svidinfoTable)
-                    {     
+                    {
 
                         if (sivdItem.functioncode == "") { continue; }
+
+                        //227代表對下裝置是否有連線
+                        else if (sivdItem.parameterid=="227") {
+                            address_227 = sivdItem.serveraddress;
+                        }
                         modbusInputList.Add(new ModbusInput()
                         {
                             Address = sivdItem.address,
                             DataType = GetDataType(sivdItem.mergemode),
                             FunctionCode = (byte)int.Parse(sivdItem.functioncode),
-                            StationNumber = 1
+                            StationNumber = Byte.Parse(item.devicestationid)
                         });
 
-                        modbusTransferDic.Add(sivdItem.functioncode + sivdItem.address, new ModbusTransfer()
+
+                        ModbusTransfer modbusTransferItem= new ModbusTransfer()
                         {
                             serveraddress = sivdItem.serveraddress,
                             serverfunctioncode = sivdItem.serverfunctioncode,
                             DataType = sivdItem.mergemode,
                             scalemultiple = float.Parse(sivdItem.scalemultiple),
                             scaleoffset = float.Parse(sivdItem.scaleoffset)
-                        });
+                        };
+
+                        if (modbusTransferDic.TryGetValue(sivdItem.functioncode + sivdItem.address, out _))
+                        {
+                            // 键已经存在，覆盖值
+                            modbusTransferDic[sivdItem.functioncode + sivdItem.address] = modbusTransferItem;
+                        }
+                        else
+                        {
+                            modbusTransferDic.Add(sivdItem.functioncode + sivdItem.address, modbusTransferItem);
+                        }        
                     }
 
                     var modbusThread = new ModbusTcpClientThread(item.deviceip, int.Parse(item.deviceport), modbusInputList);
-                    modbusThread.StartTransferThread(modbusTransferDic);
-                    modbusTcpClientThreadDic.Add(item.deviceip, modbusThread);
+
+                    modbusThread.StartTransferThread(modbusTransferDic, address_227);
+                    modbusTcpClientThreadDic.Add(item.deviceip+"."+item.devicestationid, modbusThread);
                 }
                 else if (item.connectiontype == "FINS")
                 {
@@ -108,6 +129,10 @@ namespace IOTforward
                     var svidinfoTable = SQLiteDb.selectSvidinfoModbusN(item.modbusn, item.mapfile);
                     foreach (var sivdItem in svidinfoTable)
                     {
+                        if (sivdItem.parameterid == "227")
+                        {
+                            address_227 = sivdItem.serveraddress;
+                        }
                         omronFinsInputList.Add(sivdItem.tagname, GetDataType(sivdItem.mergemode));
 
                         modbusTransferDic.Add(sivdItem.tagname, new ModbusTransfer()
@@ -119,9 +144,9 @@ namespace IOTforward
                             scaleoffset = float.Parse(sivdItem.scaleoffset)
                         });
                     }
-                    var omronFinsThread = new OmronFinsClientThread(item.deviceip, int.Parse(item.deviceport), omronFinsInputList);
-                    omronFinsThread.StartTransferThread(modbusTransferDic);
-                    finsClientThreadDic.Add(item.deviceip, omronFinsThread);
+                    var omronFinsThread = new OmronFinsClientThread(item.deviceip, int.Parse(item.deviceport), omronFinsInputList, int.Parse(item.finsdestination));
+                    omronFinsThread.StartTransferThread(modbusTransferDic, address_227);
+                    finsClientThreadDic.Add(item.deviceip+"."+ item.finsdestination, omronFinsThread);
                 }
                 else if (item.connectiontype == "COM")
                 {
@@ -131,7 +156,7 @@ namespace IOTforward
 
             while (true)
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(5000);
             }
         }
 

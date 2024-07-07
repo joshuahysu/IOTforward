@@ -15,32 +15,32 @@ namespace IOTforward
     {
         OmronFinsClient deviceClient;
         public Dictionary<string, DataTypeEnum> inputsDic { get; private set; }
+        public string DeviceIsConnectionAddress { get; set; }
 
-        internal OmronFinsClientThread(string ip,int port, Dictionary<string, DataTypeEnum> inputs) {            
+        public int FinsDestination { get; set; }
+        internal OmronFinsClientThread(string ip,int port, Dictionary<string, DataTypeEnum> inputs, int finsDestination) {            
      
             //1、Instantiate the client-enter the correct IP and port
             deviceClient = new OmronFinsClient(ip, port);
             deviceClient.Open();
             inputsDic = inputs;
-
+            FinsDestination = finsDestination;
 
         }
 
-        internal void StartTransferThread(Dictionary<string, ModbusTransfer> modbusTransferDic) {
+        internal void StartTransferThread(Dictionary<string, ModbusTransfer> modbusTransferDic, string deviceIsConnectionAddress) {
             ModbusTcpClient localClient = new ModbusTcpClient("127.0.0.1", 502);
             localClient.Open();
-
+            DeviceIsConnectionAddress = deviceIsConnectionAddress;
             new Thread(() => {
 
                 while (true)
                 {
-                    int strartAddress = 0;
-
                     //第一次strartAddress執行會是0
                     //是否有連線
-                    localClient.Write((strartAddress++).ToString(), Convert.ToUInt16(localClient.Connected));
+                    localClient.Write(DeviceIsConnectionAddress, Convert.ToUInt16(localClient.Connected));
 
-                    var result = deviceClient.BatchRead(inputsDic, 0);
+                    var result = deviceClient.BatchRead(inputsDic, FinsDestination);
 
                     foreach (var item in result.Value)
                     {              

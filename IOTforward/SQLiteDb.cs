@@ -1,9 +1,10 @@
 ﻿using Dapper;
 using IOTforward.model;
+using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
+
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,8 +19,10 @@ namespace IOTforward
 
         static void InitSQLiteDb()
         {
+            // 初始化 SQLitePCL 提供者
+            SQLitePCL.Batteries.Init();
             if (File.Exists(dbPath)) return;
-            using (var cn = new SQLiteConnection(cnStr))
+            using (var cn = new SqliteConnection(cnStr))
             {
                 cn.Execute(@"
 CREATE TABLE Player (
@@ -58,7 +61,7 @@ CREATE TABLE Player (
 
        public static IEnumerable<SvidinfoModel> selectSvidinfo(string addSql)
        {
-            using (var cn = new SQLiteConnection(cnStr))
+            using (var cn = new SqliteConnection(cnStr))
             {
                 // 定义 SQL 查询
                 string sql = "SELECT * FROM svidinfo "+ addSql;
@@ -77,13 +80,13 @@ CREATE TABLE Player (
 
         public static IEnumerable<SvidinfoModel> selectSvidinfoModbusN(string modbusn,string mapfile)
         {
-            using (var cn = new SQLiteConnection(cnStr))
+            using (var cn = new SqliteConnection(cnStr))
             {
                 // 定义 SQL 查询
                 string sql = @$"SELECT 
                 t1.parameterid,
                 printf('%0*d', length(t1.serveraddress), CAST(REPLACE(t1.serveraddress, 'N', CAST(t2.modbusn AS CHAR(255))) AS INT)) AS serveraddress,
-                t1.serverfunctioncode,printf('%0*d', length(t1.address), CAST(t1.address AS INTEGER) - d.base01+1) AS address,
+                t1.serverfunctioncode,printf('%0*d', length(t1.address), CAST(t1.address AS INTEGER) - d.base01) AS address,
                 t1.num,t1.functioncode,t1.readfreq,t1.tagname,t1.scaletype,t1.scalemultiple,t1.scaleoffset,t1.unit,t1.max,
                 t1.min,t1.signed,t1.fixed,t1.startbit,t1.endbit 
                 FROM svidinfo t1
@@ -100,7 +103,8 @@ CREATE TABLE Player (
 
         public static IEnumerable<DeviceinfoModel> deviceinfoModel()
         {
-            using (var cn = new SQLiteConnection(cnStr))
+            Console.WriteLine(dbPath);
+            using (var cn = new SqliteConnection(cnStr))
             {
                 // 定义 SQL 查询
                 string sql = "SELECT * FROM Deviceinfo";
