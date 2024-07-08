@@ -74,10 +74,17 @@ namespace IOTforward
                                         byte temp = array[index1];
                                         array[index1] = array[index2];
                                         array[index2] = temp;
-                                    }                                   
+                                    }
+                                    static byte[] GetBytes(ushort value)
+                                    {
+                                        byte[] bytes = new byte[2]; //byte[] bytes = new byte[sizeof(ushort)];
+                                        bytes[0] = (byte)(value >> 8); // 高字节
+                                        bytes[1] = (byte)value;         // 低字节
+                                        return bytes;
+                                    }
 
-                                    var writeValue = BitConverter.GetBytes(ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
-                                    SwapBytes(writeValue, 0, 1);
+                                    var writeValue = GetBytes(ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
+
                                     Program.modbusTcpServer.FunctionCode16(writeValue,"1", Int32.Parse(modbusTransferAddress.serveraddress));
                                     
                                 }

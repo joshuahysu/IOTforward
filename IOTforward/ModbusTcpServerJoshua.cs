@@ -119,7 +119,7 @@ namespace IOTforward
                     //复制请求报文中的报文头
                     Buffer.BlockCopy(requetData, 0, responseData1, 0, responseData1.Length);
                     var addressKey = $"{requetData[6]}-{requetData[8] * 256 + requetData[9]}";//站号-寄存器地址
-                    var stationNumberKey = $"{requetData[6]}-key";//站号
+                    var stationNumberKey = $"{requetData[6]}";//站号
                     var address = requetData[8] * 256 + requetData[9];//寄存器地址
                     var registerLenght = requetData[10] * 256 + requetData[11];//寄存器的长度
                     switch (requetData[7])
@@ -245,11 +245,6 @@ namespace IOTforward
         /// <param name="address"></param>
         public void FunctionCode16(byte[] value, string stationNumberKey,int address) {
 
-            //var value = new byte[requetData[12]];
-            //Buffer.BlockCopy(requetData, 13, value, 0, value.Length);
-            //byte[] byteArray = BitConverter.GetBytes("1");
-
-            stationNumberKey = stationNumberKey + "-key";
             byte[] byteArray;
             if (stationDic.TryGetValue(stationNumberKey, out byte[] modbus4))
             {
