@@ -244,15 +244,14 @@ namespace IOTforward
         /// <param name="stationNumberKey"></param>
         /// <param name="address"></param>
         public void FunctionCode16(byte[] value, string stationNumberKey,int address) {
-
-            byte[] byteArray;
+            
             if (stationDic.TryGetValue(stationNumberKey, out byte[] modbus4))
             {
                 value.CopyTo(modbus4, address * 2);
             }
             else
             {
-                byteArray = new byte[65536];
+                byte[] byteArray = new byte[65536];
                 value.CopyTo(byteArray, address * 2);
                 stationDic.Add(stationNumberKey, byteArray);
             }

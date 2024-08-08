@@ -9,16 +9,16 @@ namespace IOTforward
 {
     public class SerialPortThread
     {
-        public SerialPortThread()
+        public SerialPortThread(string portName,int baudRate,int parity,int stopBits,int dataBits,int handshake)
         {
-            SerialPort mySerialPort = new SerialPort("COM1");
+            SerialPort mySerialPort = new SerialPort(portName);//new SerialPort("COM1");
 
             // 设置波特率、数据位、停止位和奇偶校验
-            mySerialPort.BaudRate = 9600;
-            mySerialPort.Parity = Parity.None;
-            mySerialPort.StopBits = StopBits.One;
-            mySerialPort.DataBits = 8;
-            mySerialPort.Handshake = Handshake.None;
+            mySerialPort.BaudRate = baudRate;//9600;
+            mySerialPort.Parity = (Parity)parity;//Parity.None;
+            mySerialPort.StopBits = (StopBits)stopBits;//StopBits.One;
+            mySerialPort.DataBits = dataBits;// 8;
+            mySerialPort.Handshake = (Handshake)handshake;// Handshake.None;
 
             // 设置读取和写入超时时间（毫秒）
             mySerialPort.ReadTimeout = 500;   // 500毫秒读取超时

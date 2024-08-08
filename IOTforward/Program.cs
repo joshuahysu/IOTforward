@@ -150,6 +150,7 @@ namespace IOTforward
                 }
                 else if (item.connectiontype == "COM")
                 {
+                    //var serialPortThread=new SerialPortThread(item.p,item.stop);
 
                 }
                 else if (item.connectiontype == "OPCUA")

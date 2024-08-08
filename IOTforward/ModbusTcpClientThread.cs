@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -29,7 +30,7 @@ namespace IOTforward
 
         internal void StartTransferThread(Dictionary<string, ModbusTransfer> modbusTransferDic, string deviceIsConnectionAddress)
         {
-            ModbusTcpClient localClient = new ModbusTcpClient("127.0.0.1", 503);
+            ModbusTcpClient localClient = new ModbusTcpClient("127.0.0.1", 502);
             localClient.Open();
 
             DeviceIsConnectionAddress = deviceIsConnectionAddress;
@@ -39,15 +40,17 @@ namespace IOTforward
                 while (true)
                 {
                     try
-                    {
-                        //第一次strartAddress執行會是0
+                    {                     
                         //是否有連線
                         localClient.Write(DeviceIsConnectionAddress, Convert.ToUInt16(localClient.Connected));
+                        //讀取數值
                         var result = deviceClient.BatchRead(list);
 
                         foreach (var item in result.Value)
                         {
                             modbusTransferDic.TryGetValue(item.FunctionCode.ToString() + $"{Convert.ToInt32(item.Address):D4}", out ModbusTransfer modbusTransferAddress);
+
+                            //依照讀取的數值做運算轉換
                             if (modbusTransferAddress != null)
                             {
                                 if (modbusTransferAddress.DataType == 1)
@@ -65,16 +68,8 @@ namespace IOTforward
                                 else if (modbusTransferAddress.DataType == 7) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
                                 else {
 
-                                    //localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt16(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset));
-
-
-                                    //高效能版
-                                    static void SwapBytes(byte[] array, int index1, int index2)
-                                    {
-                                        byte temp = array[index1];
-                                        array[index1] = array[index2];
-                                        array[index2] = temp;
-                                    }
+                                    //高效能版直接使用記憶體傳值
+  
                                     static byte[] GetBytes(ushort value)
                                     {
                                         byte[] bytes = new byte[2]; //byte[] bytes = new byte[sizeof(ushort)];
@@ -106,15 +101,17 @@ namespace IOTforward
             value = Math.Clamp(value, ushort.MinValue, ushort.MaxValue);
             return (ushort)value;
         }
-        public static T ConvertToWithClamp<T>(T value, float b, float c)
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        ///
+        public static T ConvertToWithClamp<T>(T value, float multiplication, float addition)
         {
-            if (b == 1 && c == 0)
+            if (multiplication == 1 && addition == 0)
             {
                 return value;
             }
 
             // Convert value to float, perform calculations
-            float result = Convert.ToSingle(value) * b + c;
+            float result = Convert.ToSingle(value) * multiplication + addition;
 
             // Determine the appropriate clamp range based on T
             dynamic clampedValue;
@@ -150,32 +147,7 @@ namespace IOTforward
             {
                 throw new ArgumentException($"Type {typeof(T)} is not supported for clamping.");
             }
-
-            // Convert the clamped value back to type T
-            return (T)Convert.ChangeType(clampedValue, typeof(T));
-        }
-
-        public static short ConvertToInt16WithClamp(float value)
-        {
-            value = Math.Clamp(value, short.MinValue, short.MaxValue);
-            return (short)value;
-        }
-        public static int ConvertToInt32WithClamp(float value)
-        {
-            value = Math.Clamp(value, int.MinValue, int.MaxValue);
-            return (int)value;
-        }
-
-        public static uint ConvertToUInt32WithClamp(float value)
-        {
-            value = Math.Clamp(value, uint.MinValue, uint.MaxValue);
-            return (uint)value;
-        }
-
-        public static Int64 ConvertToInt64WithClamp(float value)
-        {
-            value = Math.Clamp(value, Int64.MinValue, Int64.MaxValue);
-            return (Int64)value;
+            return clampedValue;
         }
 
         internal void SetModbusInput(List<ModbusInput> inputs)
