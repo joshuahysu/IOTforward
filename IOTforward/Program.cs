@@ -75,6 +75,8 @@ namespace IOTforward
                 }
                 string address_227 = "9999";
                 var modbusTransferDic = new Dictionary<string, ModbusTransfer>();
+
+                //區分不同通訊協定
                 if (item.connectiontype == "Modbus TCP")
                 {
                     
@@ -120,6 +122,7 @@ namespace IOTforward
 
                     var modbusThread = new ModbusTcpClientThread(item.deviceip, int.Parse(item.deviceport), modbusInputList);
 
+                    //需要讀取的點位及寫入的及斷連線點位
                     modbusThread.StartTransferThread(modbusTransferDic, address_227);
                     modbusTcpClientThreadDic.Add(item.deviceip+"."+item.devicestationid, modbusThread);
                 }

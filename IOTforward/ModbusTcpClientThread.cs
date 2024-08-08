@@ -48,9 +48,10 @@ namespace IOTforward
 
                         foreach (var item in result.Value)
                         {
+                            //取得讀取的值後用字典取得要傳輸的地址
                             modbusTransferDic.TryGetValue(item.FunctionCode.ToString() + $"{Convert.ToInt32(item.Address):D4}", out ModbusTransfer modbusTransferAddress);
 
-                            //依照讀取的數值做運算轉換
+                            //依照讀取的數值做型態運算轉換
                             if (modbusTransferAddress != null)
                             {
                                 if (modbusTransferAddress.DataType == 1)
@@ -67,9 +68,9 @@ namespace IOTforward
                                 else if (modbusTransferAddress.DataType == 6) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToUInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
                                 else if (modbusTransferAddress.DataType == 7) { localClient.Write(modbusTransferAddress.serveraddress, ConvertToWithClamp(Convert.ToInt64(item.Value), modbusTransferAddress.scalemultiple, modbusTransferAddress.scaleoffset)); }
                                 else {
-
+                                    //UInt16
                                     //高效能版直接使用記憶體傳值
-  
+
                                     static byte[] GetBytes(ushort value)
                                     {
                                         byte[] bytes = new byte[2]; //byte[] bytes = new byte[sizeof(ushort)];
